@@ -2,14 +2,32 @@ package com.makhasoeva.minesweeper.mvc;
 
 public abstract class Controller {
 
-	private Model model;
-	private View view;
+    public abstract void onNewGame();
+    public abstract void onAbout();
+    public abstract void onExit();
+    public abstract void onHighScores();
 
-	public Model initModel() {
-		return model.initializeNew();
-	}
 
-	public View initView() {
-		return view.initializeNew();
-	}
+    public abstract void onSquareUncovered();
+    public abstract void onSquareMarked();
+
+    public Model getModel() {
+        return model;
+    }
+
+    public void setModel(Model model) {
+        this.model = model;
+    }
+
+    public View getView() {
+        return view;
+    }
+
+    public void setView(View view) {
+        this.view = view;
+    }
+
+    private Model model;
+    private View view;
+
 }
