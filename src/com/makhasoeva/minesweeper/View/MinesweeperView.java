@@ -5,119 +5,143 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
-import com.makhasoeva.minesweeper.Model.Board;
-import com.makhasoeva.minesweeper.Model.ExplosionException;
-import com.makhasoeva.minesweeper.Model.NoSuchSquareException;
-import com.makhasoeva.minesweeper.Model.Square;
+import com.makhasoeva.minesweeper.Model.*;
+import com.makhasoeva.minesweeper.mvc.Controller;
+import com.makhasoeva.minesweeper.mvc.View;
 //import com.sun.java.util.jar.pack.Attribute;
 
 /* UI.java requires no other files. */
-public class MinesweeperView extends JFrame {
+public class MinesweeperView extends View<MinesweeperModel> {
+    private JFrame frame = new JFrame();
     private final String MARKED_SQUARE_IMAGE = "resources/markedSquare.JPG";
     private final String COVERED_SQUARE_IMAGE = "resources/coveredSquare.JPG";
-    private final String UNCOVERED_SQUARE_IMAGE = "resources/uncoveredEmptySquare.JPG";
-    private final String ONE_NEIGHBOUR_IMAGE = "resources/oneNeighbour.JPG";
-    private final String TWO_NEIGHBOURS_IMAGE = "resources/twoNeighbours.JPG";
-    private final String THREE_NEIGHBOURS_IMAGE = "resources/threeNeighbours.JPG";
+
+    private HashMap<ActionType, JMenuItem> actionsToMenuItems = new HashMap<>();
+
+    private enum Image {
+        ZERO(0, "resources/uncoveredEmptySquare.JPG"),
+        ONE(1, "resources/oneNeighbour.JPG"),
+        TWO(2, "resources/twoNeighbours.JPG"),
+        THREE(3, "resources/threeNeighbours.JPG"),
+        FOUR(4, "resources/fourNeighbours.JPG"),
+        FIVE(5, "resources/fiveNeighbours.JPG"),
+        SIX(6, "resources/sixNeighbours.JPG"),
+        SEVEN(7, "resources/sevenNeighbours.JPG"),
+        EIGHT(8, "resources/eightNeighbours.JPG");
+
+        private final int neighbors;
+        private final String path;
+
+        Image(int i, String s) {
+            neighbors = i;
+            path = s;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public static ImageIcon getImageForNeighboursNumber(int num) {
+            for (Image img : Image.values()) {
+                if (img.neighbors == num) {
+                    return new ImageIcon(img.getPath());
+                }
+            }
+            return null;
+        }
+    }
 
     private JTextField txt = new JTextField(5);
-    private JButton[][] jButtons;
+
+    public JFrame getFrame() {
+        return frame;
+    }
+
+    private JButton[][] jButtons = null;
+    private HashMap<JButton, GridPoint> buttonMinesPointHashMap = new HashMap<JButton, GridPoint>();
     private JPanel panel;
 
-    private Board board = new Board();
+    private MinesweeperModel model = new MinesweeperModel();
 
     private MouseListener bl = new MouseListener() {
 
         @Override
         public void mouseClicked(MouseEvent e) {
-
+            if (!model.isModified()) model.setModificationStatus(true);
+            int x = buttonMinesPointHashMap.get((JButton) e.getSource()).getX();
+            int y = buttonMinesPointHashMap.get((JButton) e.getSource()).getY();
             String name = ((JButton) e.getSource()).getName();
+
             txt.setText(name);
-            String[] i = name.split(" ");
-            int x = Integer.parseInt(i[0]);
-            int y = Integer.parseInt(i[1]);
-            ImageIcon buttonIcon = null;
             if (SwingUtilities.isRightMouseButton(e)) {
-                board.markSquare(x, y);
-                if (board.getGrid()[x][y].getState() == Square.States.MARKED) {
-                    buttonIcon = new ImageIcon(MARKED_SQUARE_IMAGE);
-                    jButtons[x][y].setIcon(buttonIcon);
+
+                model.getBoard().markSquare(x, y);
+                Square.States state = model.getBoard().getGrid()[x][y].getState();
+
+                if (state == Square.States.MARKED) {
+                    jButtons[x][y].setIcon(new ImageIcon(MARKED_SQUARE_IMAGE));
                 }
-                if (board.getGrid()[x][y].getState() == Square.States.COVERED) {
-                    buttonIcon = new ImageIcon(COVERED_SQUARE_IMAGE);
-                    jButtons[x][y].setIcon(buttonIcon);
+                if (state == Square.States.COVERED) {
+                    jButtons[x][y].setIcon(new ImageIcon(COVERED_SQUARE_IMAGE));
                 }
             }
             if (SwingUtilities.isLeftMouseButton(e)) {
                 try {
-                    board.uncoverSquare(x, y);
+                    model.getBoard().uncoverSquare(x, y);
+
+
                 } catch (ExplosionException e1) {
                     e1.printStackTrace();
-                } catch (NoSuchSquareException e1) {
-                    e1.printStackTrace();
                 }
-                if (board.getGrid()[x][y].getState() == Square.States.UNCOVERED) {
-                    int neighbours = board.getGrid()[x][y].getNeighbours();
-                    switch (neighbours){
-                        case 0:
-                            buttonIcon = new ImageIcon(UNCOVERED_SQUARE_IMAGE);
-                            break;
-                        case 1:
-                            buttonIcon = new ImageIcon(ONE_NEIGHBOUR_IMAGE);
-                            break;
-                        case 2:
-                            buttonIcon = new ImageIcon(TWO_NEIGHBOURS_IMAGE);
-                            break;
-                        case 3:
-                            buttonIcon = new ImageIcon(THREE_NEIGHBOURS_IMAGE);
-                            break;
-                    }
-                    jButtons[x][y].setIcon(buttonIcon);
+                Square.States state = model.getBoard().getGrid()[x][y].getState();
+                if (state == Square.States.UNCOVERED) {
+                    int neighbours = model.getBoard().getGrid()[x][y].getNeighbours();
+                    jButtons[x][y].setIcon(Image.getImageForNeighboursNumber(neighbours));
                 }
             }
         }
 
         @Override
         public void mousePressed(MouseEvent e) {
-            int i;
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
-
         }
 
         @Override
         public void mouseEntered(MouseEvent e) {
-
         }
 
         @Override
         public void mouseExited(MouseEvent e) {
-
         }
     };
 
 
-    public MinesweeperView() {
+    public MinesweeperView(JFrame jFrame, MinesweeperModel model) {
+        setModel(model);
+        //initializeNewModel();
         // Create and set up the window.
-        setName("Minesweeper");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        jFrame.setName("Minesweeper");
+        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        setLayout(new BorderLayout());
-        setJMenuBar(menuBuild());
+        jFrame.setLayout(new BorderLayout());
+        jFrame.setJMenuBar(menuBuild());
         gridBuild();
-        add(panel, BorderLayout.CENTER);
-        add(txt, BorderLayout.SOUTH);
+        jFrame.add(panel, BorderLayout.CENTER);
+        jFrame.add(txt, BorderLayout.SOUTH);
 
         // Display the window.
-        pack();
-        setResizable(false);
-        setVisible(true);
+        jFrame.pack();
+        jFrame.setResizable(false);
+        jFrame.setVisible(true);
     }
 
 
@@ -135,6 +159,7 @@ public class MinesweeperView extends JFrame {
             int height = coveredSquareImage.getHeight();
             Dimension dimension = new Dimension(width, height);
 
+
             jButtons = new JButton[Board.ROWS][Board.COLS];
 
             for (int i = 0; i < Board.ROWS; i++) {
@@ -145,9 +170,9 @@ public class MinesweeperView extends JFrame {
                     jButtons[i][j].setPreferredSize(dimension);
                     jButtons[i][j].addMouseListener(bl);
                     panel.add(jButtons[i][j]);
+                    buttonMinesPointHashMap.put(jButtons[i][j], new GridPoint(i, j));
                 }
             }
-
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
@@ -156,46 +181,68 @@ public class MinesweeperView extends JFrame {
         return;
     }
 
-    private static JMenuBar menuBuild() {
+    private JMenuBar menuBuild() {
         JMenuBar menuBar = new JMenuBar();
         JMenu menu = new JMenu("Game");
         menu.setMnemonic(KeyEvent.VK_G);
         menuBar.add(menu);
 
-        JMenuItem menuItem = new JMenuItem("New game", KeyEvent.VK_N);
-        menu.add(menuItem);
 
-        menuItem = new JMenuItem("High scores", KeyEvent.VK_H);
-        menu.add(menuItem);
+        JMenuItem menuItemNewGame = new JMenuItem("New game", KeyEvent.VK_N);
+        menu.add(menuItemNewGame);
+        actionsToMenuItems.put(ActionType.NewGame, menuItemNewGame);
+
+        JMenuItem highScoresMenuItem = new JMenuItem("High scores", KeyEvent.VK_H);
+        menu.add(highScoresMenuItem);
+        actionsToMenuItems.put(ActionType.HighScore, highScoresMenuItem);
 
         menu.addSeparator();
 
-        menuItem = new JMenuItem("Exit", KeyEvent.VK_E);
-        menuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q,
+        JMenuItem exitMenuItem = new JMenuItem("Exit", KeyEvent.VK_E);
+        exitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q,
                 ActionEvent.CTRL_MASK));
-        menu.add(menuItem);
+        menu.add(exitMenuItem);
+        actionsToMenuItems.put(ActionType.Exit, exitMenuItem);
 
         menu = new JMenu("Help");
         menu.setMnemonic(KeyEvent.VK_H);
         menuBar.add(menu);
 
-        menuItem = new JMenuItem("About", KeyEvent.VK_A);
-        menu.add(menuItem);
+        JMenuItem aboutMenuItem = new JMenuItem("About", KeyEvent.VK_A);
+        menu.add(aboutMenuItem);
+        actionsToMenuItems.put(ActionType.About, aboutMenuItem);
 
         return menuBar;
+    }
+
+    @Override
+    public void drawModel(MinesweeperModel model) {
 
     }
 
-    public static void main(String[] args) {
-        // Schedule a job for the event-dispatching thread:
-        // creating and showing this application's GUI.
-        Frame frame = new MinesweeperView();
+    @Override
+    public void addViewHandler(ActionType actionType, final Runnable action) {
+        actionsToMenuItems.get(actionType).addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    if (action != null) {
+                        action.run();
+                    }
+                } catch (Exception exc) {
+                    throw new RuntimeException(exc);
+                }
+            }
+        });
+    }
 
-//        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-//            @Override
-//            public void run() {
-//                createAndShowGUI();
-//            }
-//        });
+    @Override
+    public void initializeNewModel() {
+        setModel(new MinesweeperModel());
+    }
+
+    @Override
+    public boolean showConfirmationDialog() {
+        return false;
     }
 }

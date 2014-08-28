@@ -11,9 +11,9 @@ public class Square {
 		this.state = state;
 	}
 
-	private boolean mine;
+	private boolean mine = false;
 
-    private Integer neighbours;
+    private Integer neighbours = null;
 
     public Integer getNeighbours() {
         return neighbours;
@@ -24,12 +24,15 @@ public class Square {
     }
 
     @Override
+    public String toString() {
+        return "Square{" +
+                "state=" + state +
+                ", mine=" + mine +
+                ", neighbours=" + neighbours +
+                '}';
+    }
 
-	public String toString() {
-		return "Square [state=" + state + ", mine=" + mine + "]";
-	}
-
-	public boolean isMine() {
+    public boolean isMine() {
 		return mine;
 	}
 

@@ -38,9 +38,10 @@ public class BoardTest {
 	@Test
 	public void testSquaresNotNull() throws Exception {
 		Square[][] grid = board.getGrid();
-		for (Square[] squareRow : grid) {
-			for (Square square : squareRow) {
-				assertNotNull(square);
+		for (int i = 0; i < Board.COLS; i++) {
+			for (int j = 0; j < Board.ROWS; j++) {
+                System.out.println(grid[i][j] + " " + i + " " + j);
+                assertNotNull(grid[i][j]);
 			}
 		}
 	}
@@ -50,8 +51,8 @@ public class BoardTest {
 		Square[][] grid = board.getGrid();
 		int mines = 0;
 		for (Square[] squareRow : grid) {
-			for (Square square : squareRow) {
-				if (square.isMine())
+			for (int i = 0; i < squareRow.length; i++) {
+				if (squareRow[i].isMine())
 					mines++;
 			}
 		}
@@ -64,7 +65,8 @@ public class BoardTest {
 		for (int i = 0; i < Board.COLS; i++) {
 			for (int j = 0; j < Board.ROWS; j++) {
 				Square square = grid[i][j];
-				if (square.isMine() && square.getState() == States.COVERED) {
+                System.out.println(square);
+                if (square.isMine() && square.getState() == States.COVERED) {
 					try {
 						board.uncoverSquare(i, j);
 						fail("Mine's detonator failed");
@@ -75,29 +77,7 @@ public class BoardTest {
 		}
 	}
 
-	@Test
-	public void testUncoverNonExistentSquare() throws Exception {
-		Random nRandom = new Random();
-		int x = nRandom.nextInt(Board.COLS) + Board.COLS;
-		int y = nRandom.nextInt(Board.ROWS) + Board.ROWS;
 
-		try {
-			board.uncoverSquare(x, y);
-			fail("No such square!");
-		} catch (NoSuchSquareException e) {
-		}
 
-		try {
-			board.uncoverSquare(x % Board.COLS, y);
-			fail("No such square!");
-		} catch (NoSuchSquareException e) {
-		}
 
-		try {
-			board.uncoverSquare(x, y % Board.ROWS);
-			fail("No such square!");
-		} catch (NoSuchSquareException e) {
-		}
-
-	}
 }

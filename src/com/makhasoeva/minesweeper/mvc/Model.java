@@ -1,6 +1,6 @@
 package com.makhasoeva.minesweeper.mvc;
 
-public abstract class Model {
+public class Model {
 
 	private boolean modified = false;
 
@@ -12,10 +12,8 @@ public abstract class Model {
 		modified = status;
 	}
 
-	public Model() {
-		initializeNew();
-	}
-
-	protected abstract Model initializeNew();
+    public Model initializeNew() {
+        return new Model();
+    }
 
 }

@@ -1,16 +1,27 @@
 package com.makhasoeva.minesweeper.mvc;
 
-public abstract class View {
-	private Model model;
+import java.io.Console;
 
-	public abstract View initializeNew();
+public abstract class View<M extends Model> {
+	private M model;
 
-	public View() {
-		initializeNew();
-	}
+    public abstract void drawModel(M model);
+    public abstract void addViewHandler(ActionType actionType, Runnable action);
 
-	public void buildMenu() {
+    public void setModel(M model) {
+        this.model = model;
+      //  drawModel(model);
+    }
 
-	}
+    public M getModel() {
+        return model;
+    }
 
+    public abstract void initializeNewModel();
+
+    public abstract boolean showConfirmationDialog();
+
+    public enum ActionType {
+        NewGame, HighScore, Exit, About
+    }
 }
