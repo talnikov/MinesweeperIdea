@@ -13,16 +13,19 @@ import javax.swing.*;
 
 import com.makhasoeva.minesweeper.Model.*;
 import com.makhasoeva.minesweeper.mvc.Controller;
+import com.makhasoeva.minesweeper.mvc.Model;
+import com.makhasoeva.minesweeper.mvc.SquareHandler;
 import com.makhasoeva.minesweeper.mvc.View;
 //import com.sun.java.util.jar.pack.Attribute;
 
 /* UI.java requires no other files. */
-public class MinesweeperView extends View<MinesweeperModel> {
+public class MinesweeperView implements View {
     private JFrame frame = new JFrame();
     private final String MARKED_SQUARE_IMAGE = "resources/markedSquare.JPG";
     private final String COVERED_SQUARE_IMAGE = "resources/coveredSquare.JPG";
 
     private HashMap<ActionType, JMenuItem> actionsToMenuItems = new HashMap<>();
+    private SquareHandler squareHandler;
 
     private enum Image {
         ZERO(0, "resources/uncoveredEmptySquare.JPG"),
@@ -59,74 +62,39 @@ public class MinesweeperView extends View<MinesweeperModel> {
 
     private JTextField txt = new JTextField(5);
 
-    public JFrame getFrame() {
-        return frame;
-    }
-
     private JButton[][] jButtons = null;
-    private HashMap<JButton, GridPoint> buttonMinesPointHashMap = new HashMap<JButton, GridPoint>();
     private JPanel panel;
 
-    private MinesweeperModel model = new MinesweeperModel();
+    private class ButtonClickListener extends MouseAdapter {
 
-    private MouseListener bl = new MouseListener() {
+        final int buttonCoordI;
+        final int buttonCoordJ;
+
+        private ButtonClickListener(int buttonCoordI, int buttonCoordJ) {
+            this.buttonCoordI = buttonCoordI;
+            this.buttonCoordJ = buttonCoordJ;
+        }
 
         @Override
         public void mouseClicked(MouseEvent e) {
-            if (!model.isModified()) model.setModificationStatus(true);
-            int x = buttonMinesPointHashMap.get((JButton) e.getSource()).getX();
-            int y = buttonMinesPointHashMap.get((JButton) e.getSource()).getY();
             String name = ((JButton) e.getSource()).getName();
-
             txt.setText(name);
+
             if (SwingUtilities.isRightMouseButton(e)) {
-
-                model.getBoard().markSquare(x, y);
-                Square.States state = model.getBoard().getGrid()[x][y].getState();
-
-                if (state == Square.States.MARKED) {
-                    jButtons[x][y].setIcon(new ImageIcon(MARKED_SQUARE_IMAGE));
-                }
-                if (state == Square.States.COVERED) {
-                    jButtons[x][y].setIcon(new ImageIcon(COVERED_SQUARE_IMAGE));
+                if (squareHandler != null) {
+                    squareHandler.onSquareMarked(buttonCoordI, buttonCoordJ);
                 }
             }
             if (SwingUtilities.isLeftMouseButton(e)) {
-                try {
-                    model.getBoard().uncoverSquare(x, y);
-
-
-                } catch (ExplosionException e1) {
-                    e1.printStackTrace();
-                }
-                Square.States state = model.getBoard().getGrid()[x][y].getState();
-                if (state == Square.States.UNCOVERED) {
-                    int neighbours = model.getBoard().getGrid()[x][y].getNeighbours();
-                    jButtons[x][y].setIcon(Image.getImageForNeighboursNumber(neighbours));
+                if (squareHandler != null) {
+                    squareHandler.onSquareOpened(buttonCoordI, buttonCoordJ);
                 }
             }
-        }
-
-        @Override
-        public void mousePressed(MouseEvent e) {
-        }
-
-        @Override
-        public void mouseReleased(MouseEvent e) {
-        }
-
-        @Override
-        public void mouseEntered(MouseEvent e) {
-        }
-
-        @Override
-        public void mouseExited(MouseEvent e) {
         }
     };
 
 
-    public MinesweeperView(JFrame jFrame, MinesweeperModel model) {
-        setModel(model);
+    public MinesweeperView(JFrame jFrame) {
         //initializeNewModel();
         // Create and set up the window.
         jFrame.setName("Minesweeper");
@@ -168,9 +136,8 @@ public class MinesweeperView extends View<MinesweeperModel> {
                     jButtons[i][j] = new JButton(buttonIcon);
                     jButtons[i][j].setName(i + " " + j);
                     jButtons[i][j].setPreferredSize(dimension);
-                    jButtons[i][j].addMouseListener(bl);
+                    jButtons[i][j].addMouseListener(new ButtonClickListener(i, j));
                     panel.add(jButtons[i][j]);
-                    buttonMinesPointHashMap.put(jButtons[i][j], new GridPoint(i, j));
                 }
             }
 
@@ -216,8 +183,23 @@ public class MinesweeperView extends View<MinesweeperModel> {
     }
 
     @Override
-    public void drawModel(MinesweeperModel model) {
-
+    public void drawModel(Model model) {
+        for (int i = 0; i < Board.ROWS; i++) {
+            for (int j = 0; j < Board.COLS; j++) {
+                JButton btn = jButtons[i][j];
+                switch (model.getSquareState(i, j)) {
+                    case COVERED:
+                        btn.setIcon(new ImageIcon(COVERED_SQUARE_IMAGE));
+                        break;
+                    case UNCOVERED:
+                        btn.setIcon(Image.getImageForNeighboursNumber(model.getSquareNeighbors(i, j)));
+                        break;
+                    case MARKED:
+                        btn.setIcon(new ImageIcon(MARKED_SQUARE_IMAGE));
+                        break;
+                }
+            }
+        }
     }
 
     @Override
@@ -237,12 +219,7 @@ public class MinesweeperView extends View<MinesweeperModel> {
     }
 
     @Override
-    public void initializeNewModel() {
-        setModel(new MinesweeperModel());
-    }
-
-    @Override
-    public boolean showConfirmationDialog() {
-        return false;
+    public void setSquareHandler(SquareHandler handler) {
+        this.squareHandler = handler;
     }
 }
